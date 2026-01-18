@@ -1,0 +1,16 @@
+.env
+__pycache__/
+node_modules/
+*.pyc
+.DS_Store
+# Windows System User Profile Junctions (to avoid permission denied errors)
+Application Data/
+NetHood/
+Recent/
+Cookies/
+Local Settings/
+My Documents/
+PrintHood/
+SendTo/
+Start Menu/
+Templates/
