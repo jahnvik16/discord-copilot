@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { updateSystemInstructions, getSystemInstructions, resetMemory, updateAllowedChannel, getBotConfig } from './actions'
+
 import { Upload, Trash2, Save, FileText, Bot, Shield, Brain } from 'lucide-react'
 
 export default function Dashboard() {
@@ -20,12 +20,12 @@ export default function Dashboard() {
   // Load initial data
   useEffect(() => {
     Promise.all([
-      getSystemInstructions(),
-      getBotConfig(),
+      fetch('/api/config').then(res => res.json()),
       fetch('/api/memory/preview').then(res => res.json()),
       fetch('/api/config/status').then(res => res.json())
-    ]).then(([instr, config, memory, status]) => {
-      setInstructions(instr)
+    ]).then(([configRes, memory, status]) => {
+      const config = configRes.config
+      setInstructions(config?.system_instructions || '')
       if (config) {
         setChannelId(config.discord_channel_id || '')
       }
@@ -44,7 +44,12 @@ export default function Dashboard() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateSystemInstructions(instructions)
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_instructions: instructions })
+      })
+      if (!res.ok) throw new Error('Failed to update instructions')
       const statusRes = await fetch('/api/config/status')
       const status = await statusRes.json()
       setConfigLastUpdated(status.last_updated_at)
@@ -60,7 +65,8 @@ export default function Dashboard() {
   const handleReset = async () => {
     if (!confirm('Are you sure you want to clear the bot\'s memory? This cannot be undone.')) return
     try {
-      await resetMemory()
+      const res = await fetch('/api/memory', { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to reset memory')
       alert('Memory cleared.')
     } catch (e: any) {
       alert('Error resetting memory: ' + e.message)
@@ -69,7 +75,12 @@ export default function Dashboard() {
 
   const handleSaveChannel = async () => {
     try {
-      await updateAllowedChannel(channelId)
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_channel_id: channelId })
+      })
+      if (!res.ok) throw new Error('Failed to update channel')
       alert('Channel Access Control updated!')
     } catch (e: any) {
       alert('Error updating channel: ' + e.message)
